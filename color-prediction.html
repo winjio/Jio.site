@@ -15,8 +15,8 @@ body{background:#111;color:#fff;min-height:100vh;display:flex;justify-content:ce
 .title-text{font-size:24px;font-weight:900;font-style:italic;text-align:center;background:linear-gradient(90deg, #ff4081, #7c4dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:5px}
 .top-section{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .box-wrapper{flex:1;position:relative;height:150px;display:flex;align-items:center;justify-content:center;perspective:800px}
-.box-top{position:absolute;top:20px;width:120px;height:80px;background:#4caf50;border-radius:8px;z-index:2;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:bold;color:#fff;transition:transform 0.5s ease}
-.box-bottom{position:absolute;bottom:20px;width:130px;height:100px;background:#d32f2f;border-radius:12px;z-index:1;display:flex;align-items:center;justify-content:center;font-size:50px;font-weight:bold;color:#fff}
+.box-top{position:absolute;top:20px;width:120px;height:80px;background:#4caf50;border-radius:8px;z-index:2;display:flex;align-items:center;justify-content:center;font-size:40px;font-weight:bold;color:#fff;transition:transform 0.5s ease;border:2px solid #fff;box-shadow:0 4px 10px rgba(0,0,0,0.5)}
+.box-bottom{position:absolute;bottom:20px;width:130px;height:100px;background:#d32f2f;border-radius:12px;z-index:1;display:flex;align-items:center;justify-content:center;font-size:50px;font-weight:bold;color:#fff;transition:background 0.3s;box-shadow:0 4px 10px rgba(0,0,0,0.5)}
 .box-top.open{transform:translateY(-80px) rotateX(40deg);opacity:0}
 .timer-wrapper{width:130px;background:rgba(0,0,0,0.3);border-radius:12px;padding:10px;text-align:center;border:1px solid rgba(255,255,255,0.1)}
 .timer-title{font-size:14px;color:#90caf9;margin-bottom:5px;font-weight:bold}
@@ -49,10 +49,9 @@ body{background:#111;color:#fff;min-height:100vh;display:flex;justify-content:ce
 .history-table th{text-align:left;padding:4px;color:#90caf9;font-weight:normal;border-bottom:1px solid rgba(255,255,255,0.1)}
 .result-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:none;flex-direction:column;align-items:center;justify-content:center}
 .result-overlay.show{display:flex}
-.result-text{font-size:40px;font-weight:bold;color:#4caf50;margin-bottom:10px}
+.result-text{font-size:36px;font-weight:bold;color:#4caf50;margin-bottom:10px;text-align:center}
 .result-amount{font-size:24px;color:#ffd700}
 </style>
-  <link rel="stylesheet" href="css/live-users.css">
 </head>
 <body>
 <div class="app">
@@ -60,7 +59,10 @@ body{background:#111;color:#fff;min-height:100vh;display:flex;justify-content:ce
   <div class="game-container">
     <div class="title-text">Color Prediction</div>
     <div class="top-section">
-      <div class="box-wrapper"><div class="box-top" id="boxTop">?</div><div class="box-bottom" id="boxBottom">?</div></div>
+      <div class="box-wrapper">
+        <div class="box-top" id="boxTop">?</div>
+        <div class="box-bottom" id="boxBottom">?</div>
+      </div>
       <div class="timer-wrapper"><div class="timer-title">Countdown</div><div class="timer-circle" id="timerCircle"><div class="timer-inner" id="timerText">30</div></div></div>
     </div>
     <div class="bet-area">
@@ -85,21 +87,143 @@ body{background:#111;color:#fff;min-height:100vh;display:flex;justify-content:ce
 <script>
 const CHIPS = [10, 50, 100, 500], COLORS = {0:'violet', 1:'green', 2:'red', 3:'green', 4:'red', 5:'violet', 6:'red', 7:'green', 8:'red', 9:'green'};
 let balance = 1000, currentChipIdx = 0, userBets = {}, lastBet = {}, isRolling = false, countdown = 30, timerInterval;
-function buildNumbersGrid() { const grid = document.getElementById('numbersGrid'); for(let i=0; i<=9; i++) { const div = document.createElement('div'); let bgClass = 'bg-green'; if(i === 0 || i === 5) bgClass = 'bg-violet'; else if(i % 2 === 0) bgClass = 'bg-red'; div.className = `num-zone ${bgClass}`; div.textContent = i; div.onclick = function() { placeBet(i.toString(), this); }; grid.appendChild(div); } }
-function updateUI() { document.getElementById('balUI').textContent = balance.toLocaleString(); document.getElementById('chipUI').textContent = CHIPS[currentChipIdx]; document.querySelectorAll('.chip-stack').forEach(el => el.remove()); for(const [zone, amt] of Object.entries(userBets)) { const el = document.querySelector(`[onclick="placeBet('${zone}', this)"]`); if(el) { const chip = document.createElement('div'); chip.className = `chip-stack c${amt>=500?500:amt>=100?100:amt>=50?50:10}`; chip.textContent = amt; el.style.position='relative'; el.appendChild(chip); } } }
+
+function buildNumbersGrid() { 
+    const grid = document.getElementById('numbersGrid'); 
+    for(let i=0; i<=9; i++) { 
+        const div = document.createElement('div'); 
+        let bgClass = 'bg-green'; 
+        if(i === 0 || i === 5) bgClass = 'bg-violet'; 
+        else if(i % 2 === 0) bgClass = 'bg-red'; 
+        div.className = `num-zone ${bgClass}`; 
+        div.textContent = i; 
+        div.onclick = function() { placeBet(i.toString(), this); }; 
+        grid.appendChild(div); 
+    } 
+}
+
+function updateUI() { 
+    document.getElementById('balUI').textContent = balance.toLocaleString(); 
+    document.getElementById('chipUI').textContent = CHIPS[currentChipIdx]; 
+    document.querySelectorAll('.chip-stack').forEach(el => el.remove()); 
+    for(const [zone, amt] of Object.entries(userBets)) { 
+        const el = document.querySelector(`[onclick="placeBet('${zone}', this)"]`); 
+        if(el) { 
+            const chip = document.createElement('div'); 
+            chip.className = `chip-stack c${amt>=500?500:amt>=100?100:amt>=50?50:10}`; 
+            chip.textContent = amt; 
+            el.style.position='relative'; 
+            el.appendChild(chip); 
+        } 
+    } 
+}
+
 function changeChip() { currentChipIdx = (currentChipIdx + 1) % CHIPS.length; updateUI(); beep(600, 0.05); }
-function placeBet(zone, el) { if(isRolling) return; const amt = CHIPS[currentChipIdx]; if(balance < amt) { beep(200, 0.1); return; } balance -= amt; userBets[zone] = (userBets[zone] || 0) + amt; updateUI(); beep(800, 0.05); el.style.transform = 'scale(0.9)'; setTimeout(()=>el.style.transform = 'scale(1)', 100); if(!isRolling && !timerInterval) startTimer(); }
+function placeBet(zone, el) { 
+    if(isRolling) return; 
+    const amt = CHIPS[currentChipIdx]; 
+    if(balance < amt) { beep(200, 0.1); return; } 
+    balance -= amt; userBets[zone] = (userBets[zone] || 0) + amt; 
+    updateUI(); beep(800, 0.05); 
+    el.style.transform = 'scale(0.9)'; setTimeout(()=>el.style.transform = 'scale(1)', 100); 
+    if(!isRolling && !timerInterval) startTimer(); 
+}
 function clearBet() { if(isRolling) return; balance += Object.values(userBets).reduce((a,b)=>a+b,0); userBets = {}; updateUI(); }
 function undoBet() { if(isRolling) return; const zones = Object.keys(userBets); if(!zones.length) return; const l = zones[zones.length-1]; balance += userBets[l]; delete userBets[l]; updateUI(); }
 function againBet() { if(isRolling) return; clearBet(); const t = Object.values(lastBet).reduce((a,b)=>a+b,0); if(t === 0 || balance < t) return; balance -= t; userBets = { ...lastBet }; updateUI(); }
-function startTimer() { if(timerInterval) clearInterval(timerInterval); countdown = 30; document.getElementById('boxTop').classList.remove('open'); document.getElementById('boxTop').textContent = '?'; timerInterval = setInterval(() => { countdown -= 0.1; if(countdown <= 0) { clearInterval(timerInterval); timerInterval = null; drawResult(); } else { document.getElementById('timerCircle').style.background = `conic-gradient(#00e5ff ${(countdown/30)*100}%, #1a237e ${(countdown/30)*100}%)`; document.getElementById('timerText').textContent = Math.ceil(countdown); } }, 100); }
-function drawResult() { isRolling = true; lastBet = { ...userBets }; const winNum = Math.floor(Math.random() * 10), winColor = COLORS[winNum]; document.getElementById('boxTop').textContent = winNum; document.getElementById('boxTop').classList.add('open'); beep(600, 0.2); setTimeout(() => evaluate(winNum, winColor), 600); }
-function evaluate(num, color) { isRolling = false; let totalWin = 0, totalBet = Object.values(userBets).reduce((a,b)=>a+b,0); for(const [zone, amt] of Object.entries(userBets)) { let win = false, mult = 1; if(zone === num.toString()) { win = true; mult = 9.6; } else if(zone === color) { win = true; mult = color === 'violet' ? 4.8 : (num === 0 || num === 5 ? 1.6 : 2.0); } if(win) totalWin += amt * mult; } if(totalWin > 0) { balance += Math.floor(totalWin); showResult('WIN', totalWin - totalBet); playWinSound(); } else if(totalBet > 0) { showResult('LOSE', -totalBet); beep(200, 0.3); } userBets = {}; updateUI(); setTimeout(() => { document.getElementById('resultOverlay').classList.remove('show'); startTimer(); }, 3000); }
-function showResult(type, amount) { document.getElementById('resultText').textContent = type; document.getElementById('resultText').style.color = type==='WIN'?'#4caf50':'#f44336'; document.getElementById('resultAmt').textContent = (amount>0?'+':'')+Math.floor(amount); document.getElementById('resultOverlay').classList.add('show'); }
+
+function startTimer() { 
+    if(timerInterval) clearInterval(timerInterval); 
+    countdown = 30; 
+    const topBox = document.getElementById('boxTop');
+    topBox.classList.remove('open'); 
+    topBox.textContent = '?'; 
+    
+    timerInterval = setInterval(() => { 
+        countdown -= 0.1; 
+        if(countdown <= 0) { 
+            clearInterval(timerInterval); 
+            timerInterval = null; 
+            drawResult(); 
+        } else { 
+            document.getElementById('timerCircle').style.background = `conic-gradient(#00e5ff ${(countdown/30)*100}%, #1a237e ${(countdown/30)*100}%)`; 
+            document.getElementById('timerText').textContent = Math.ceil(countdown); 
+        } 
+    }, 100); 
+}
+
+function drawResult() { 
+    isRolling = true; 
+    lastBet = { ...userBets }; 
+    const winNum = Math.floor(Math.random() * 10);
+    const winColor = COLORS[winNum]; 
+    
+    // Show number and change background color of bottom box
+    const boxBottom = document.getElementById('boxBottom');
+    boxBottom.textContent = winNum;
+    if (winColor === 'green') boxBottom.style.background = '#4caf50';
+    else if (winColor === 'red') boxBottom.style.background = '#d32f2f';
+    else boxBottom.style.background = '#8e24aa'; // violet
+    
+    // Open the top box to reveal
+    document.getElementById('boxTop').classList.add('open'); 
+    beep(600, 0.2); 
+    setTimeout(() => evaluate(winNum, winColor), 600); 
+}
+
+function evaluate(num, color) { 
+    isRolling = false; 
+    let totalWin = 0, totalBet = Object.values(userBets).reduce((a,b)=>a+b,0); 
+    
+    for(const [zone, amt] of Object.entries(userBets)) { 
+        let win = false, mult = 1; 
+        if(zone === num.toString()) { win = true; mult = 9.6; } 
+        else if(zone === color) { win = true; mult = color === 'violet' ? 4.8 : (num === 0 || num === 5 ? 1.6 : 2.0); } 
+        if(win) totalWin += amt * mult; 
+    } 
+    
+    // Update History Table
+    const tbody = document.getElementById('historyBody');
+    if(tbody.children[0] && tbody.children[0].children.length === 1) {
+        tbody.innerHTML = ''; 
+    }
+    const tr = document.createElement('tr');
+    const now = new Date().toLocaleTimeString('en-US', {hour12: false, hour: "2-digit", minute: "2-digit"});
+    const resColor = color === 'green' ? '#4caf50' : color === 'red' ? '#d32f2f' : '#8e24aa';
+    tr.innerHTML = `<td>₹${totalBet > 0 ? totalBet : 0}</td><td style="color:${resColor};font-weight:bold">${num} ${color.toUpperCase()}</td><td>${now}</td><td>${totalWin > 0 ? '+' + Math.floor(totalWin - totalBet) : '-' + totalBet}</td>`;
+    tbody.insertBefore(tr, tbody.firstChild);
+    if(tbody.children.length > 5) tbody.removeChild(tbody.lastChild);
+
+    if(totalWin > 0) { 
+        balance += Math.floor(totalWin); 
+        showResult(`WIN! (${num} ${color.toUpperCase()})`, totalWin - totalBet); 
+        playWinSound(); 
+    } else if(totalBet > 0) { 
+        showResult(`LOSE (${num} ${color.toUpperCase()})`, -totalBet); 
+        beep(200, 0.3); 
+    } else {
+        showResult(`Result: ${num} ${color.toUpperCase()}`, 0);
+    }
+    
+    userBets = {}; 
+    updateUI(); 
+    
+    setTimeout(() => { 
+        document.getElementById('resultOverlay').classList.remove('show'); 
+        startTimer(); 
+    }, 3000); 
+}
+
+function showResult(type, amount) { 
+    document.getElementById('resultText').textContent = type; 
+    document.getElementById('resultText').style.color = type.includes('WIN')?'#4caf50':type.includes('LOSE')?'#f44336':'#ffd700'; 
+    document.getElementById('resultAmt').textContent = amount !== 0 ? (amount>0?'+':'')+Math.floor(amount) : ''; 
+    document.getElementById('resultOverlay').classList.add('show'); 
+}
+
 let audioCtx; function beep(freq, dur, type='sine', vol=0.1) { try { if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.type=type; o.frequency.value=freq; g.gain.setValueAtTime(vol, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+dur); o.connect(g); g.connect(audioCtx.destination); o.start(); o.stop(audioCtx.currentTime+dur); } catch(e) {} }
 function playWinSound() { [523, 659, 784, 1047].forEach((f,i)=>setTimeout(()=>beep(f,0.2,'triangle',0.1), i*100)); }
 window.onload = () => { buildNumbersGrid(); updateUI(); startTimer(); };
 </script>
-  <script src="js/live-users.js"></script>
 </body>
 </html>
